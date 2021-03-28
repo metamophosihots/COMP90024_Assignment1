@@ -161,14 +161,14 @@ def sumHappinessPoints(twitter_content, zone_happiness_points):
 
 
 # demo for testing tiny json twitter file
-with open("tinyTwitter.json", "r") as read_file:
+with open("smallTwitter.json", "r") as read_file:
     twitter_file = json.load(read_file)
-total_twitter_count = twitter_file['total_rows']
+total_twitter_count = len(twitter_file['rows'])
 twitter_index = 0
 [word_list, word_points_list] = readEmotionDictionary()
 zone_happiness_points = initializeZoneHappinessPoints()
 dictionary_length = len(word_list)
-while twitter_index <= (total_twitter_count - 2):
+while twitter_index <= total_twitter_count - 1:
     single_twitter = getTwitter(twitter_file, twitter_index)
     twitter_index += 1
     twitter_content = seizeTwitterContent(single_twitter)
@@ -181,6 +181,4 @@ while twitter_index <= (total_twitter_count - 2):
     twitter_word_list = transformTwitterText(twitter_content['text'])
     twitter_content = calculateHappinessPoints(twitter_content, word_points_list, word_list)
     sumHappinessPoints(twitter_content, zone_happiness_points)
-    print(twitter_content['happiness_points'])
-    print(twitter_content['text'])
 print(zone_happiness_points)
