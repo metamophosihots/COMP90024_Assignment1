@@ -6,13 +6,12 @@ import re
 def readEmotionDictionary():
     emotion_dictionary_object = open("AFINN.txt", "r")
     emotion_word_items = emotion_dictionary_object.readlines()
-    word_list_array = []
-    word_points_array = []
+    emotion_dictionary = {}
     for line in emotion_word_items:
         line_content = line.split("\t")
-        word_list_array.append(line_content[0])
-        word_points_array.append(int(line_content[1].rstrip("\n")))
-    return [word_list_array, word_points_array]
+        emotion_dictionary[line_content[0]] = line_content[1].strip('\n')
+    return emotion_dictionary
+
 
 # Set up an empty form for final happiness points presentation
 def initializeZoneHappinessPoints():
@@ -20,11 +19,17 @@ def initializeZoneHappinessPoints():
                              'C1': 0, 'C2': 0, 'C3': 0, 'C4': 0, 'C5': 0, 'D3': 0, 'D4': 0, 'D5': 0}
     return zone_happiness_points
 
+# Set up an empty form for the final twitter counts presentation
+def initializeZoneTwitterCount():
+    zone_twitter_counts = {'A1': 0, 'A2': 0, 'A3': 0, 'A4': 0, 'B1': 0, 'B2': 0, 'B3': 0, 'B4': 0,
+                             'C1': 0, 'C2': 0, 'C3': 0, 'C4': 0, 'C5': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+    return zone_twitter_counts
 
 # Read the twitter content and seize a single twitter from the provided json file
 def getTwitter(twitter_file, twitter_index):
     single_twitter = twitter_file['rows'][twitter_index]
     return single_twitter
+
 
 # Seize useful information for happiness points calculation
 def seizeTwitterContent(twitter_file):
@@ -74,6 +79,7 @@ def calculateLatitudeZone(coordinates):
             latitude_zone = 'A'
     return latitude_zone
 
+
 # judge if the zone is one of the zones in melbGrid
 def allocateZone(longitude_zone, latitude_zone):
     if longitude_zone == 1 and latitude_zone == 'A':
@@ -116,42 +122,22 @@ def allocateZone(longitude_zone, latitude_zone):
 # Transform twitter text into all lower case situation, and then split them with all possible mark
 def transformTwitterText(twitter_text):
     twitter_text = twitter_text.lower()
-    split_pattern = r',|\.|/|;|\'|`|\[|\]|<|>|\?|:|"|\{|\}|\~|!|@|#|\$|%|\^|&|\(|\)|-|=|\_|\+|，|。|、|；|‘|’|【|】|·|！| |…|（|）'
-    word_list = re.split(split_pattern, twitter_text)
+    word_list = re.findall('[a-z]+', twitter_text)
     return word_list
 
 
-# Use Binary Search to make sure if target word is in the emotion dictionary
-# global variable emotion dictionary length
-# dictionary_length = len(emotion_dictionary)
-def searchEmotionDictionary(word_list, lower_bound, upper_bound, target_word):
-    if upper_bound >= lower_bound:
-        mid = (lower_bound + upper_bound) // 2
-        if word_list[mid] == target_word:
-            return mid
-        elif word_list[mid] > target_word:
-            return searchEmotionDictionary(word_list, lower_bound, mid - 1, target_word)
-        else:
-            return searchEmotionDictionary(word_list, mid + 1, upper_bound, target_word)
-    else:
-        return -1
-
-
 # calculate happiness points for a twitter
-def calculateHappinessPoints(twitter_content, word_points, emotion_dictionary):
+def calculateHappinessPoints(emotion_dictionary, twitter_content, emotional_list):
     index = 0
-    happiness_points = 0
+    twitter_happiness_points = 0
     twitter_word_list = transformTwitterText(twitter_content['text'])
-    # print(twitter_word_list)
     while index <= len(twitter_word_list) - 1:
-        word_list_position = searchEmotionDictionary(emotion_dictionary, 0, len(emotion_dictionary) - 1, twitter_word_list[index])
-        if word_list_position == -1:
-            index += 1
-            continue
-        else:
-            happiness_points += word_points[word_list_position]
-            index += 1
-    twitter_content['happiness_points'] = happiness_points
+        word_happiness_points = emotion_dictionary.get(twitter_word_list[index], 0)
+        twitter_happiness_points += int(word_happiness_points)
+        if word_happiness_points != 0:
+            appendEmotionalWords(emotional_list, twitter_word_list[index])
+        index += 1
+    twitter_content['happiness_points'] = twitter_happiness_points
     return twitter_content
 
 
@@ -159,16 +145,28 @@ def calculateHappinessPoints(twitter_content, word_points, emotion_dictionary):
 def sumHappinessPoints(twitter_content, zone_happiness_points):
     zone_happiness_points[twitter_content['zone']] += twitter_content['happiness_points']
 
+# test function
+def appendEmotionalWords(emotional_list, target_word):
+    emotional_list.append(target_word)
+    return emotional_list
+
 
 # demo for testing tiny json twitter file
 with open("smallTwitter.json", "r") as read_file:
     twitter_file = json.load(read_file)
 total_twitter_count = len(twitter_file['rows'])
 twitter_index = 0
-[word_list, word_points_list] = readEmotionDictionary()
+emotion_dictionary = readEmotionDictionary()
 zone_happiness_points = initializeZoneHappinessPoints()
-dictionary_length = len(word_list)
+zone_twitter_counts = initializeZoneTwitterCount()
+# print(emotion_dictionary)
 while twitter_index <= total_twitter_count - 1:
+
+    # test code
+    emotional_list = []
+    # test code
+
+
     single_twitter = getTwitter(twitter_file, twitter_index)
     twitter_index += 1
     twitter_content = seizeTwitterContent(single_twitter)
@@ -178,7 +176,18 @@ while twitter_index <= total_twitter_count - 1:
     if twitter_zone == 'X0':
         continue
     twitter_content['zone'] = twitter_zone
-    twitter_word_list = transformTwitterText(twitter_content['text'])
-    twitter_content = calculateHappinessPoints(twitter_content, word_points_list, word_list)
+    zone_twitter_counts[twitter_zone] += 1
+    twitter_content = calculateHappinessPoints(emotion_dictionary, twitter_content, emotional_list)
     sumHappinessPoints(twitter_content, zone_happiness_points)
+
+    # test code
+    # if int(twitter_content['happiness_points']) != 0:
+    print(twitter_content['text'])
+    print(transformTwitterText(twitter_content['text']))
+    print(emotional_list)
+    print(twitter_content['happiness_points'])
+    print('\n')
+    # test code
+
+print(zone_twitter_counts)
 print(zone_happiness_points)
