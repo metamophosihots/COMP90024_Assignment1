@@ -2,7 +2,9 @@ import json
 import re
 
 phrase_list = ['can\'t stand', 'cashing in', 'cool stuff', 'does not work', 'dont like', 'fed up', 'green wash',
-                   'green washing', 'messing up', 'no fun', 'not good', 'not working', 'right direction', 'screwed up', 'some kind']
+               'green washing', 'messing up', 'no fun', 'not good', 'not working', 'right direction', 'screwed up',
+               'some kind']
+
 
 # Read the emotion dictionary file end with txt, convert it into two arrays.
 # One of them is a word list, the other one is the corresponding emotion points
@@ -22,12 +24,12 @@ def initializeZoneHappinessPoints():
                              'C1': 0, 'C2': 0, 'C3': 0, 'C4': 0, 'C5': 0, 'D3': 0, 'D4': 0, 'D5': 0}
     return zone_happiness_points
 
+
 # Set up an empty form for the final twitter counts presentation
 def initializeZoneTwitterCount():
     zone_twitter_counts = {'A1': 0, 'A2': 0, 'A3': 0, 'A4': 0, 'B1': 0, 'B2': 0, 'B3': 0, 'B4': 0,
-                             'C1': 0, 'C2': 0, 'C3': 0, 'C4': 0, 'C5': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+                           'C1': 0, 'C2': 0, 'C3': 0, 'C4': 0, 'C5': 0, 'D3': 0, 'D4': 0, 'D5': 0}
     return zone_twitter_counts
-
 
 
 # Read the twitter content and seize a single twitter from the provided json file
@@ -124,24 +126,29 @@ def allocateZone(longitude_zone, latitude_zone):
     return twitter_zone
 
 
-
 # Transform twitter text into all lower case situation, and then split them with all possible mark
 def searchPhraseInTwitterText(twitter_text, phrase_list, emotion_dictionary):
     phrase_points = 0
     for phrase in phrase_list:
-        phrase_list = re.findall(r'[\b]' + phrase + r'[^\w]*', twitter_text)
+        phrase_pattern = re.compile(r'[\s!,.\'\"]*' + phrase + r'[!,?.\'\"]*')
+        phrase_list = re.findall(phrase_pattern, twitter_text)
         if len(phrase_list) != 0:
+            # print(phrase_list)
             phrase_points += (int(emotion_dictionary[phrase]) * len(phrase_list))
-            twitter_text = twitter_text.replace(phrase, '')
+            for match_phrase in phrase_list:
+                twitter_text = twitter_text.replace(match_phrase, '')
     return [phrase_points, twitter_text]
 
+
 def splitTwitterText(twitter_text):
-    twitter_word_list = re.split(r'[\n\s]', twitter_text)
+    twitter_word_list = re.split(r'[\s]+', twitter_text)
     valid_word_list = []
     for word in twitter_word_list:
-        pattern = r'^[a-z]+[\']?[a-z]*[\!\,\?\.\'\"]*'
-        pattern_final = r'[a-z]+[\']?[a-z]*'
+        pattern = re.compile('^[\!\,\?\.\'\"]*[a-z]+[\']?[a-z]*[\!\,\?\.\'\"]*$')
+        pattern_final = re.compile('[a-z]+[\']?[a-z]*')
         valid_word = re.findall(pattern, word)
+        if len(valid_word) == 0:
+            continue
         for item in valid_word:
             final_word = re.findall(pattern_final, item)
             for each_word in final_word:
@@ -155,8 +162,8 @@ def calculateHappinessPoints(emotion_dictionary, twitter_content):
     twitter_happiness_points = 0
     twitter_text = twitter_content['text'].lower()
     [phrase_points, phrase_free_twitter_text] = searchPhraseInTwitterText(twitter_text, phrase_list, emotion_dictionary)
-
     twitter_happiness_points += phrase_points
+
     twitter_word_list = splitTwitterText(phrase_free_twitter_text)
     while index <= len(twitter_word_list) - 1:
         word_happiness_points = emotion_dictionary.get(twitter_word_list[index], 0)
@@ -171,10 +178,6 @@ def sumHappinessPoints(twitter_content, zone_happiness_points):
     zone_happiness_points[twitter_content['zone']] += twitter_content['happiness_points']
 
 
-
-
-
-
 # demo for testing tiny json twitter file
 with open("smallTwitter.json", "r") as read_file:
     twitter_file = json.load(read_file)
@@ -183,7 +186,6 @@ twitter_index = 0
 emotion_dictionary = readEmotionDictionary()
 zone_happiness_points = initializeZoneHappinessPoints()
 zone_twitter_counts = initializeZoneTwitterCount()
-
 
 while twitter_index <= total_twitter_count - 1:
     single_twitter = getTwitter(twitter_file, twitter_index)
