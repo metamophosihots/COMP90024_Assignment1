@@ -53,7 +53,6 @@ def calculateLongitudeZone(coordinates):
     longitude = coordinates[0]
     relative_longitude = format((longitude - 144.7), '.8f')
     relative_longitude = float(relative_longitude)
-    print(relative_longitude)
     if relative_longitude < 0 or relative_longitude > 0.6:
         # Stop searching this twitter
         longitude_zone = -1
@@ -76,7 +75,6 @@ def calculateLatitudeZone(coordinates):
     latitude = coordinates[1]
     relative_latitude = format((latitude + 38.1), '.8f')
     relative_latitude = float(relative_latitude)
-    print(relative_latitude)
     if relative_latitude < 0 or relative_latitude > 0.6:
         # Stop searching this twitter
         latitude_zone = 'X'
